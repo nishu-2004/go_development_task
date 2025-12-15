@@ -70,3 +70,9 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 
 	return c.JSON(user)
 }
+
+// GET /users
+func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
+	users := h.userService.GetAllUsers()
+	return c.JSON(users)
+}

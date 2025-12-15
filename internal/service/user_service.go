@@ -44,3 +44,8 @@ func (s *UserService) GetUserByID(id int) (models.User, bool) {
 	}
 	return models.User{}, false
 }
+
+// LIST USERS
+func (s *UserService) GetAllUsers() []models.User {
+	return s.users
+}
