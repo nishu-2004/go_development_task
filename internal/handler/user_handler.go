@@ -15,14 +15,13 @@ type UserHandler struct {
 	validate    *validator.Validate
 }
 
-func NewUserHandler() *UserHandler {
+func NewUserHandler(userService *service.UserService) *UserHandler {
 	return &UserHandler{
-		userService: service.NewUserService(),
+		userService: userService,
 		validate:    validator.New(),
 	}
 }
 
-// request body struct
 type createUserRequest struct {
 	Name string `json:"name" validate:"required,min=2"`
 	Dob  string `json:"dob"  validate:"required"`
@@ -32,17 +31,14 @@ type createUserRequest struct {
 func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	var body createUserRequest
 
-	// parse JSON
 	if err := c.BodyParser(&body); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
 
-	// validate fields
 	if err := h.validate.Struct(body); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	// validate DOB format
 	parsedDob, err := time.Parse("2006-01-02", body.Dob)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "dob must be YYYY-MM-DD")
@@ -52,7 +48,11 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "dob cannot be in the future")
 	}
 
-	user := h.userService.CreateUser(body.Name, body.Dob)
+	user, err := h.userService.CreateUser(c.Context(), body.Name, body.Dob)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
 	return c.Status(fiber.StatusCreated).JSON(user)
 }
 
@@ -63,8 +63,8 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid user id")
 	}
 
-	user, found := h.userService.GetUserByID(id)
-	if !found {
+	user, err := h.userService.GetUserByID(c.Context(), int32(id))
+	if err != nil {
 		return fiber.ErrNotFound
 	}
 
@@ -73,6 +73,10 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 
 // GET /users
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
-	users := h.userService.GetAllUsers()
+	users, err := h.userService.ListUsers(c.Context())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
 	return c.JSON(users)
 }
