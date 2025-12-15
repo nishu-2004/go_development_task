@@ -172,5 +172,3 @@ http://localhost:8080
 ## 👤 Author
 
 Nishanth P Kashyap
-
-````
